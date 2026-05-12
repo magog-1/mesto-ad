@@ -9,6 +9,10 @@ const isLikedByUser = (likes, currentUserId) => {
   return likes.some((user) => user._id === currentUserId);
 };
 
+export const removeCardElement = (cardElement) => {
+  cardElement.remove();
+};
+
 export const createCardElement = (
   data,
   currentUserId,

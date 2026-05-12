@@ -52,6 +52,7 @@
                 minlength="2"
                 maxlength="40"
                 pattern="^[A-Za-zА-Яа-яЁё\-\s]+$"
+                data-error-message="Разрешены только латинские и кириллические буквы, дефис и пробел"
                 required
               />
               <span class="popup__error" id="user-name-error"></span>
@@ -95,6 +96,7 @@
                 minlength="2"
                 maxlength="30"
                 pattern="^[A-Za-zА-Яа-яЁё\-\s]+$"
+                data-error-message="Разрешены только латинские и кириллические буквы, дефис и пробел"
                 required
               />
               <span class="popup__error" id="place-name-error"></span>
@@ -174,10 +176,10 @@
       <div class="popup popup_type_info">
         <div class="popup__content popup__content_content_info">
           <button type="button" class="popup__close"></button>
-          <h3 class="popup__title"></h3>
+          <h3 class="popup__title">Статистика карточек</h3>
           <dl class="popup__info"></dl>
 
-          <h4 class="popup__text"></h4>
+          <h4 class="popup__text">Популярные карточки</h4>
           <ul class="popup__list"></ul>
         </div>
       </div>

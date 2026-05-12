@@ -6,7 +6,7 @@
   Из index.js не допускается что то экспортировать
 */
 
-import { createCardElement } from "./components/card.js";
+import { createCardElement, removeCardElement } from "./components/card.js";
 import { openModalWindow, closeModalWindow, setCloseModalWindowEventListeners } from "./components/modal.js";
 import {
   getCardList,
@@ -50,9 +50,7 @@ const avatarInput = avatarForm.querySelector(".popup__input");
 const deleteCardModalWindow = document.querySelector(".popup_type_remove-card");
 const deleteCardForm = deleteCardModalWindow.querySelector(".popup__form");
 const usersStatsModalWindow = document.querySelector(".popup_type_info");
-const usersStatsModalTitle = usersStatsModalWindow.querySelector(".popup__title");
 const usersStatsModalInfoList = usersStatsModalWindow.querySelector(".popup__info");
-const usersStatsModalText = usersStatsModalWindow.querySelector(".popup__text");
 const usersStatsModalUsersList = usersStatsModalWindow.querySelector(".popup__list");
 
 const infoTemplate = document.getElementById("popup-info-definition-template").content;
@@ -79,14 +77,6 @@ const setButtonLoadingState = (button, isLoading, loadingText) => {
 
   button.textContent = isLoading ? loadingText : button.dataset.defaultText;
   button.disabled = isLoading;
-};
-
-const formatDate = (date) => {
-  return date.toLocaleDateString("ru-RU", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 };
 
 const createInfoString = (term, description) => {
@@ -217,7 +207,7 @@ const handleDeleteCardSubmit = (evt) => {
   setButtonLoadingState(submitButton, true, "Удаление...");
   deleteCard(cardToDelete.cardId)
     .then(() => {
-      cardToDelete.cardElement.remove();
+      removeCardElement(cardToDelete.cardElement);
       cardToDelete = null;
       closeModalWindow(deleteCardModalWindow);
     })
@@ -232,52 +222,54 @@ const handleDeleteCardSubmit = (evt) => {
 const handleLogoClick = () => {
   getCardList()
     .then((cards) => {
-      usersStatsModalTitle.textContent = "Статистика карточек";
       usersStatsModalInfoList.replaceChildren();
       usersStatsModalUsersList.replaceChildren();
 
+      const likesByUserId = new Map();
+      const usersMap = new Map();
+      const popularCards = [...cards].sort((a, b) => b.likes.length - a.likes.length);
+      const totalLikes = cards.reduce((sum, card) => sum + card.likes.length, 0);
+
+      cards.forEach((card) => {
+        usersMap.set(card.owner._id, card.owner.name);
+
+        card.likes.forEach((user) => {
+          usersMap.set(user._id, user.name);
+          const likesCount = likesByUserId.get(user._id) || 0;
+          likesByUserId.set(user._id, likesCount + 1);
+        });
+      });
+
+      let likesChampionName = "-";
+      let maxLikesBySingleUser = 0;
+
+      likesByUserId.forEach((likesCount, userId) => {
+        if (likesCount > maxLikesBySingleUser) {
+          maxLikesBySingleUser = likesCount;
+          likesChampionName = usersMap.get(userId) || "-";
+        }
+      });
+
       if (!cards.length) {
-        usersStatsModalInfoList.append(createInfoString("Карточек:", "0"));
-        usersStatsModalText.textContent = "Пользователи";
+        usersStatsModalInfoList.append(createInfoString("Всего пользователей", "0"));
+        usersStatsModalInfoList.append(createInfoString("Всего лайков", "0"));
+        usersStatsModalInfoList.append(createInfoString("Максимально лайков от одного", "0"));
+        usersStatsModalInfoList.append(createInfoString("Чемпион лайков", "-"));
+        usersStatsModalUsersList.append(createUserBadge("Нет карточек"));
         openModalWindow(usersStatsModalWindow);
         return;
       }
 
-      const sortedByDate = [...cards].sort(
-        (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+      usersStatsModalInfoList.append(createInfoString("Всего пользователей", String(usersMap.size)));
+      usersStatsModalInfoList.append(createInfoString("Всего лайков", String(totalLikes)));
+      usersStatsModalInfoList.append(
+        createInfoString("Максимально лайков от одного", String(maxLikesBySingleUser))
       );
+      usersStatsModalInfoList.append(createInfoString("Чемпион лайков", likesChampionName));
 
-      const totalLikes = cards.reduce((sum, card) => sum + card.likes.length, 0);
-      const usersMap = new Map();
-
-      cards.forEach((card) => {
-        usersMap.set(card.owner._id, card.owner.name);
-        card.likes.forEach((user) => {
-          usersMap.set(user._id, user.name);
-        });
+      popularCards.slice(0, 5).forEach((card) => {
+        usersStatsModalUsersList.append(createUserBadge(`${card.name} (${card.likes.length})`));
       });
-
-      usersStatsModalInfoList.append(createInfoString("Карточек:", String(cards.length)));
-      usersStatsModalInfoList.append(createInfoString("Лайков:", String(totalLikes)));
-      usersStatsModalInfoList.append(
-        createInfoString("Уникальных пользователей:", String(usersMap.size))
-      );
-      usersStatsModalInfoList.append(
-        createInfoString("Первая создана:", formatDate(new Date(sortedByDate[0].createdAt)))
-      );
-      usersStatsModalInfoList.append(
-        createInfoString(
-          "Последняя создана:",
-          formatDate(new Date(sortedByDate[sortedByDate.length - 1].createdAt))
-        )
-      );
-
-      usersStatsModalText.textContent = "Участники активности";
-      Array.from(usersMap.values())
-        .sort((a, b) => a.localeCompare(b, "ru"))
-        .forEach((name) => {
-          usersStatsModalUsersList.append(createUserBadge(name));
-        });
 
       openModalWindow(usersStatsModalWindow);
     })
